@@ -127,10 +127,17 @@ function! s:edtime.load() dict
   endfor
 endfunction
 
-function! s:edtime.show() dict
+function! s:edtime.show(...) dict
   try
     call self.stop(s:curfile())
-    for [k, v] in items(self.files)
+
+    let files = {}
+    if a:0 == 0
+      let files = {s:curfile(): self.files[s:curfile()]}
+    else
+      let files = self.files
+    endif
+    for [k, v] in items(files)
       echo printf('%s: %s', k, s:format_time(float2nr(round(v.total))))
     endfor
   finally
@@ -140,7 +147,12 @@ endfunction
 " }}}
 
 
-command! EdTime call s:edtime.show()
+" Command
+function! s:complete_edtime(A, L, P)
+  return ['all']
+endfunction
+command! -nargs=? -complete=customlist,s:complete_edtime
+      \ EdTime call s:edtime.show(<f-args>)
 
 
 augroup EdTime
