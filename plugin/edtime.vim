@@ -92,10 +92,10 @@ function! s:edtime.stop(f) dict
   let self.files[a:f].end = reltime()
 
   call self.calc(a:f)
-  call self.clear(a:f)
+  call self.reset(a:f)
 endfunction
 
-function! s:edtime.clear(f) dict
+function! s:edtime.reset(f) dict
   let self.files[a:f].start = []
   let self.files[a:f].end = []
 endfunction
