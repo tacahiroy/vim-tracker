@@ -27,10 +27,22 @@ function! s:is_ignored(f)
   if empty(a:f)
     return 1
   endif
+
   if expand(a:f) == s:data_file
     return 1
   endif
+
   if !empty(&l:buftype)
+    return 1
+  endif
+
+  if !empty(s:accept_pattern)
+    if a:f !~# s:accept_pattern
+      return 1
+    endif
+  endif
+
+  if a:f =~# s:ignore_pattern
     return 1
   endif
 
@@ -127,6 +139,8 @@ function! s:edtime.load() dict
   endfor
 endfunction
 
+" TODO: sorting
+" TODO: display to buffer
 function! s:edtime.show(...) dict
   try
     call self.stop(s:curfile())
@@ -137,6 +151,7 @@ function! s:edtime.show(...) dict
     else
       let files = self.files
     endif
+
     for [k, v] in items(files)
       echo printf('%s: %s', k, s:format_time(float2nr(round(v.total))))
     endfor
@@ -167,7 +182,14 @@ let s:data_dir = expand(get(g:, 'edtime_data_dir', '~/.edtime'))
 if !isdirectory(s:data_dir)
   call mkdir(s:data_dir, 'p')
 endif
+
+" FIXME: data file should be named by date(yyyymmdd)
 let s:data_file = s:data_dir . '/db'
+
+" NOTE: files that `accept_pattern` - `ignore_pattern` are managed
+" if both pattern are specified
+let s:accept_pattern = get(g:, 'edtime_accept_pattern', '')
+let s:ignore_pattern = get(g:, 'edtime_ignore_pattern', '')
 
 if filereadable(s:data_file)
   call s:edtime.load()
