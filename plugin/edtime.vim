@@ -76,7 +76,7 @@ function! s:edtime.start(f) dict
   endif
 
   if !has_key(self.files, a:f)
-    let self.files[a:f] = { 'start': 0, 'end': 0, 'total': 0 }
+    let self.files[a:f] = { 'start': [], 'end': [], 'total': 0 }
   endif
   let self.files[a:f].start = reltime()
 endfunction
