@@ -11,6 +11,9 @@
 if !has('reltime')
   finish
 endif
+if !has('float')
+  finish
+endif
 
 let s:saved_cpo = &cpo
 set cpo&vim
