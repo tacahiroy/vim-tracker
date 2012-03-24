@@ -25,31 +25,8 @@ function! s:curfile()
   return expand('%:p')
 endfunction
 
-" returns whether {f} is ignored or not
-function! s:is_ignored(f)
-  if empty(a:f)
-    return 1
-  endif
-
-  if expand(a:f) == s:data_file
-    return 1
-  endif
-
-  if !empty(&l:buftype)
-    return 1
-  endif
-
-  if !empty(s:accept_pattern)
-    if a:f !~# s:accept_pattern
-      return 1
-    endif
-  endif
-
-  if a:f =~# s:ignore_pattern
-    return 1
-  endif
-
-  return 0
+function! s:to_path(...)
+  return join(a:000, '/')
 endfunction
 
 function! s:divide(t)
@@ -83,21 +60,37 @@ endfunction
 " }}}
 
 " Object " {{{
-let s:edtime = {}
-let s:edtime.files = {}
+let s:EdTime = {}
+let s:EdTime.files = {}
+let s:EdTime.db = ''
+let s:EdTime.summary = {}
 
-function! s:edtime.start(f) dict
-  if s:is_ignored(a:f)
+" NOTE: files that `accept_pattern` - `ignore_pattern` are managed
+" if both pattern are specified
+let s:EdTime.accept_pattern = get(g:, 'edtime_accept_pattern', '')
+let s:EdTime.ignore_pattern = get(g:, 'edtime_ignore_pattern', '')
+lockvar s:EdTime.accept_pattern
+lockvar s:EdTime.ignore_pattern
+
+function! s:EdTime.new(f) dict
+  let obj = deepcopy(self)
+  let obj.db = a:f
+  call obj.load()
+  return obj
+endfunction
+
+function! s:EdTime.start(f) dict
+  if self.is_ignored(a:f)
     return
   endif
 
-  if !has_key(self.files, a:f)
-    let self.files[a:f] = { 'start': [], 'end': [], 'total': 0 }
+  if !self.has_file(a:f)
+    call self.add_file(a:f)
   endif
   let self.files[a:f].start = reltime()
 endfunction
 
-function! s:edtime.stop(f) dict
+function! s:EdTime.stop(f) dict
   if !has_key(self.files, a:f)
     return
   endif
@@ -111,18 +104,37 @@ function! s:edtime.stop(f) dict
   call self.reset(a:f)
 endfunction
 
-function! s:edtime.reset(f) dict
+function! s:EdTime.has_file(f) dict
+  return has_key(self.files, a:f)
+endfunction
+
+function! s:EdTime.add_file(f) dict
+  let self.files[a:f] = { 'start': [], 'end': [], 'total': 0 }
+endfunction
+
+function! s:EdTime.reset(f) dict
   let self.files[a:f].start = []
   let self.files[a:f].end = []
 endfunction
 
-function! s:edtime.calc(f) dict
-  let pass = str2float(reltimestr(reltime(self.files[a:f].start, self.files[a:f].end)))
-  let self.files[a:f].total += pass
-  call self.save()
+function! s:EdTime.remove(f) dict
+  call remove(self.files, a:f)
 endfunction
 
-function! s:edtime.save() dict
+function! s:EdTime.calc(f) dict
+  let pass = str2float(reltimestr(reltime(self.files[a:f].start, self.files[a:f].end)))
+  let self.files[a:f].total += pass
+
+  if !self.summary.has_file(a:f)
+    call self.summary.add_file(a:f)
+  endif
+  let self.summary.files[a:f].total += pass
+
+  call self.save()
+  call self.summary.save()
+endfunction
+
+function! s:EdTime.save() dict
   let files = []
   for [k, v] in items(self.files)
     " call add(files, k)
@@ -130,11 +142,15 @@ function! s:edtime.save() dict
     let info[k] = {'total': v.total}
     call add(files, string(info))
   endfor
-  call writefile(files, s:data_file)
+  call writefile(files, self.db)
 endfunction
 
-function! s:edtime.load() dict
-  let files = readfile(s:data_file)
+function! s:EdTime.load() dict
+  if !filereadable(self.db)
+    return
+  endif
+
+  let files = readfile(self.db)
   for f in files
     for [k, v] in items(eval(f))
       let self.files[k] = v
@@ -145,23 +161,62 @@ endfunction
 
 " TODO: sorting
 " TODO: display to buffer
-function! s:edtime.show(...) dict
+function! s:EdTime.show(...) dict
   try
     call self.stop(s:curfile())
 
+    if !a:0 && self.is_ignored(s:curfile())
+      return
+    endif
+
     let files = {}
     if a:0 == 0
+      " show only current file
       let files = {s:curfile(): self.files[s:curfile()]}
     else
       let files = self.files
     endif
 
     for [k, v] in items(files)
-      echo printf('%s: %s', k, s:format_time(float2nr(round(v.total))))
+      let sum = s:format_time(self.summary.files[k].total)
+      echo printf('%s: %s (%s)', k, s:format_time(v.total), sum)
     endfor
   finally
     call self.start(s:curfile())
   endtry
+endfunction
+
+" returns whether {f} is ignored or not
+function! s:EdTime.is_ignored(f) dict
+  if empty(a:f)
+    return 1
+  endif
+
+  if isdirectory(a:f)
+    return 1
+  endif
+
+  if expand(a:f) == self.db
+    return 1
+  endif
+
+  if !empty(&l:buftype)
+    return 1
+  endif
+
+  if !empty(self.accept_pattern)
+    if a:f !~# self.accept_pattern
+      return 1
+    endif
+  endif
+
+  if !empty(self.ignore_pattern)
+    if a:f =~# self.ignore_pattern
+      return 1
+    endif
+  endif
+
+  return 0
 endfunction
 " }}}
 
@@ -171,14 +226,14 @@ function! s:complete_edtime(A, L, P)
   return ['all']
 endfunction
 command! -nargs=? -complete=customlist,s:complete_edtime
-      \ EdTime call s:edtime.show(<f-args>)
+      \ EdTime call s:edt.show(<f-args>)
 
 
 augroup EdTime
   autocmd!
 
-  autocmd BufEnter,FocusGained * call s:edtime.start(s:curfile())
-  autocmd BufLeave,FocusLost,VimLeave * call s:edtime.stop(s:curfile())
+  autocmd BufEnter,FocusGained * call s:edt.start(s:curfile())
+  autocmd BufLeave,FocusLost,VimLeave * call s:edt.stop(s:curfile())
 augroup END
 
 
@@ -187,17 +242,12 @@ if !isdirectory(s:data_dir)
   call mkdir(s:data_dir, 'p')
 endif
 
-" FIXME: data file should be named by date(yyyymmdd)
-let s:data_file = s:data_dir . '/db'
+" data-file is managed each day
+let s:data_file_today = s:to_path(s:data_dir, strftime('%Y%m%d.db'))
+let s:data_file = s:to_path(s:data_dir, 'full.db')
 
-" NOTE: files that `accept_pattern` - `ignore_pattern` are managed
-" if both pattern are specified
-let s:accept_pattern = get(g:, 'edtime_accept_pattern', '')
-let s:ignore_pattern = get(g:, 'edtime_ignore_pattern', '')
-
-if filereadable(s:data_file)
-  call s:edtime.load()
-endif
+let s:edt = s:EdTime.new(s:data_file_today)
+let s:edt.summary = s:EdTime.new(s:data_file)
 
 let &cpo = s:saved_cpo
 unlet s:saved_cpo
