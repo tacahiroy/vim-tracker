@@ -53,20 +53,21 @@ function! s:is_ignored(f)
 endfunction
 
 function! s:divide(t)
-  let MIN = 60
-  let HOUR = 60 * 60
-  let DAY = 60 * 60 * 24
+  let DAY = 60 * 24
+  let HOUR = 60
+
+  let min = float2nr(a:t) / 60
 
   let time = {}
-  let time.day = a:t / DAY
-  let time.hour = a:t / HOUR
-  let time.min = a:t / MIN
+  let time.day = min / DAY
+  let time.hour = (min % DAY) / HOUR
+  let time.min = (min % DAY % HOUR)
 
   return time
 endfunction
 
 function! s:format_time(t)
-  let ans = s:divide(a:t)
+  let ans = s:divide(round(a:t))
   let str = ''
 
   if 0 < ans.day
