@@ -145,6 +145,7 @@ endfunction
 
 " TODO: sorting
 " TODO: display to buffer
+" TODO: omit file name if it's better
 function! s:EdTime.show(...) dict
   try
     call self.stop(s:curfile())
@@ -153,17 +154,24 @@ function! s:EdTime.show(...) dict
       return
     endif
 
+    let opts = ['all', '']
+    let opt = get(a:, '1', '')
+
+    if index(opts, opt) == -1
+      return
+    endif
+
     let files = {}
-    if a:0 == 0
+    if opt == 'all'
+      let files = self.summary.files
+    else
       " show only current file
       let files = {s:curfile(): self.files[s:curfile()]}
-    else
-      let files = self.files
     endif
 
     for [k, v] in items(files)
-      let sum = s:format_time(self.summary.files[k].total)
-      echo printf('%s: %s (%s)', k, s:format_time(v.total), sum)
+      let sum = self.summary.files[k].total
+      echo printf('%s: %s (%s)', k, s:format_time(v.total), s:format_time(sum))
     endfor
   finally
     call self.start(s:curfile())
