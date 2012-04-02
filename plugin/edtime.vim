@@ -19,11 +19,11 @@ let s:saved_cpo = &cpo
 set cpo&vim
 
 
-" " Utilities " {{{
+" Utilities " {{{
 function! s:to_path(...)
   return join(a:000, '/')
 endfunction
-" " }}}
+" }}}
 
 
 let s:data_dir = expand(get(g:, 'edtime_data_dir', '~/.edtime'))
@@ -38,11 +38,8 @@ let s:edt = edtime#new(s:to_path(s:data_dir, strftime('%Y%m%d.db')))
 let s:edt.summary = edtime#new(s:to_path(s:data_dir, 'full.db'))
 
 " Command
-function! s:complete_edtime(A, L, P)
-  return ['all']
-endfunction
-command! -nargs=? -complete=customlist,s:complete_edtime
-      \ EdTime call s:edt.show(<f-args>)
+command! -nargs=0 EdTime call s:edt.show()
+command! -nargs=0 EdTimeAll call s:edt.show('-a')
 
 
 augroup EdTime
