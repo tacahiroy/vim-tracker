@@ -50,6 +50,19 @@ function! s:format_time(t)
 
   return str
 endfunction
+
+function! s:longest_path_length(ary2)
+  let mlen = 0
+
+  for [k, v] in a:ary2
+    let l = len(s:shorten_path(k))
+    if mlen < l
+      let mlen = l
+    endif
+  endfor
+
+  return mlen
+endfunction
 " }}}
 
 " public " {{{
@@ -61,6 +74,11 @@ function! edtime#new(f)
   let obj.db = a:f
   call obj.load()
   return obj
+endfunction
+
+" args: k: int: 0 => today's, 1 => full
+function! edtime#dbname(k)
+  return a:k ? 'full.db' : strftime('%Y%m%d.db')
 endfunction
 " }}}
 
@@ -75,6 +93,9 @@ function! s:EdTime.start(f) dict
   if !self.has_file(a:f)
     call self.add_file(a:f)
   endif
+
+  " date might be changed when the file is being edited
+  let self.db = edtime#dbname(0)
   let self.files[a:f].start = reltime()
 endfunction
 
@@ -151,7 +172,6 @@ function! s:EdTime.load() dict
   endfor
 endfunction
 
-" TODO: sorting
 " TODO: display into a buffer
 " TODO: omit file name if it's better
 function! s:EdTime.show(...) dict
@@ -162,13 +182,15 @@ function! s:EdTime.show(...) dict
       return
     endif
 
-    let opts = ['-a', '']
+    let option_list = ['all', '']
     let opt = get(a:, '1', '')
 
     let files = {}
-    if opt == '-a'
+    if opt == 'all'
       for [k, v] in items(self.summary.files)
-        let files[k] = {'total': self.summary.get_total(k)}
+        let files[k] = {'total': self.sort_base_is_today ?
+                               \ self.get_total(k) :
+                               \ self.summary.get_total(k)}
       endfor
     else
       " show only current file
@@ -179,12 +201,18 @@ function! s:EdTime.show(...) dict
     if !self.is_display_zero
       let sortedlist = self.filter(sortedlist)
     endif
+    let sortedlist = sortedlist[0:self.max_rank - 1]
+
+    let fmt = '%3d: '
+    let fmt .= printf('%%-%ds ', s:longest_path_length(sortedlist))
+    let fmt .= '%s (%s)'
 
     let i = 1
     for [k, v] in sortedlist
       let sum = s:format_time(self.summary.files[k].total)
       let today = s:format_time(self.get_total(k))
-      echo printf('%3d: %s: %s (%s)', i, s:shorten_path(k), today, sum)
+      echo printf(fmt, i, s:shorten_path(k), today, sum)
+
       let i += 1
     endfor
   finally
@@ -194,22 +222,25 @@ endfunction
 
 function! s:EdTime.sort(files) dict
   let list = []
+
   for [k, v] in items(a:files)
     call add(list, [k, v])
   endfor
 
-  if empty(self.sort_func)
-    let self.sort_func = self.sort_by_edtime
+  if empty(self.sort_function)
+    let self.sort_function = self.sort_by_edtime
   endif
 
-  return sort(sort(list), self.sort_func, self)
+  return sort(sort(list), self.sort_function, self)
 endfunction
 
 function! s:EdTime.filter(list)
-  return filter(a:list, '0 < v:val[1].total')
+  let l = filter(a:list, '0 < v:val[1].total')
+  return filter(l, 'filereadable(v:val[0])')
 endfunction
 
 function! s:EdTime.sort_by_edtime(a, b) dict
+  " a:a[0] => key, [1] => {'total': 999.99}
   let a = a:a[1].total
   let b = a:b[1].total
   let r = 0
@@ -225,7 +256,20 @@ function! s:EdTime.sort_by_edtime(a, b) dict
   return r * (self.sort_order_is_desc ? -1 : 1)
 endfunction
 
-function s:EdTime.sort_by_time_today(a, b)
+function! s:EdTime.sort_by_name(a, b) dict
+  let a = a:a[0]
+  let b = a:b[0]
+  let r = 0
+
+  if a < b
+    let r = -1
+  elseif b < a
+    let r = 1
+  else
+    let r = 0
+  endif
+
+  return r * (self.sort_order_is_desc ? -1 : 1)
 endfunction
 
 " returns whether {f} is ignored or not
@@ -264,16 +308,28 @@ endfunction
 let s:EdTime.files = {}
 let s:EdTime.db = ''
 let s:EdTime.summary = {}
-let s:EdTime.sort_func = ''
-let s:EdTime.sort_order_is_desc = 0
 
 " NOTE: files that `accept_pattern` - `ignore_pattern` are managed
 " if both pattern are specified
 let s:EdTime.accept_pattern = s:expand_path(get(g:, 'edtime_accept_pattern', ''))
 let s:EdTime.ignore_pattern = s:expand_path(get(g:, 'edtime_ignore_pattern', ''))
+
 let s:EdTime.is_display_zero = get(g:, 'edtime_is_display_zero', 0)
+let s:EdTime.max_rank = get(g:, 'edtime_max_rank', 10)
+
+" sort
+let s:sort_functions = filter(keys(s:EdTime),
+      \ 'v:val =~ "^sort_by_" && type(s:EdTime[v:val]) == type(function("tr"))')
+
+let s:DEFAULT_SORT_METHOD = 'sort_by_edtime'
+let s:sort_method = get(g:, 'edtime_sort_method', s:DEFAULT_SORT_METHOD)
+if index(s:sort_functions, s:sort_method) == -1
+  let s:sort_method = s:DEFAULT_SORT_METHOD
+endif
+let s:EdTime.sort_function = s:EdTime[s:sort_method]
+
+let s:EdTime.sort_base_is_today = get(g:,'edtime_sort_base_is_today', 1)
 let s:EdTime.sort_order_is_desc = get(g:, 'edtime_sort_order_is_desc', 1)
-let s:EdTime.sort_func = s:EdTime.sort_by_edtime
 " }}}
 
 

@@ -33,13 +33,13 @@ endif
 
 " data-file is managed each day
 " today
-let s:edt = edtime#new(s:to_path(s:data_dir, strftime('%Y%m%d.db')))
+let s:edt = edtime#new(s:to_path(s:data_dir, edtime#dbname(0)))
 " total
-let s:edt.summary = edtime#new(s:to_path(s:data_dir, 'full.db'))
+let s:edt.summary = edtime#new(s:to_path(s:data_dir, edtime#dbname(1)))
 
 " Command
 command! -nargs=0 EdTime call s:edt.show()
-command! -nargs=0 EdTimeAll call s:edt.show('-a')
+command! -nargs=0 EdTimeAll call s:edt.show('all')
 
 
 augroup EdTime
