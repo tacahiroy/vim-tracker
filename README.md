@@ -26,7 +26,7 @@ Usage
 bestfriend.vim provide 2 commands to show your best friend.
 
 * `:BestFriend` shows edit time of the current file.
-* `:BestFriendRank` shows ranking of edit time.
+* `:BestFriends` shows ranking of edit time.
 
 Actually bestfriend.vim provides several options.
 
