@@ -25,6 +25,9 @@ let s:edt = edtime#new(edtime#dbname(0))
 " total
 let s:edt.summary = edtime#new(edtime#dbname(1))
 
+let is_detect_cursor_move = get(g:, 'edtime_is_detect_cursor_move',
+                                   \ has('gui_running') ? '0' : '1')
+
 " Command
 command! -nargs=0 EdTime call s:edt.show()
 command! -nargs=0 EdTimeAll call s:edt.show('all')
@@ -35,7 +38,10 @@ augroup EdTime
 
   autocmd BufEnter,FocusGained * call s:edt.start(expand('%:p'))
   autocmd BufLeave,FocusLost,VimLeave * call s:edt.stop(expand('%:p'))
-  autocmd CursorHold,CursorHoldI * call s:edt.start(expand('%:p'))
+
+  if is_detect_cursor_move
+    autocmd CursorHold,CursorHoldI * call s:edt.start(expand('%:p'))
+  endif
 augroup END
 
 
