@@ -203,7 +203,7 @@ function! s:EdTime.show(...) dict
     let files = {}
     if opt == 'all'
       for [k, v] in items(self.summary.files)
-        let files[k] = {'total': self.sort_base_is_today ?
+        let files[k] = {'total': self.is_sort_base_today ?
                                \ self.get_total(k) :
                                \ self.summary.get_total(k)}
       endfor
@@ -268,7 +268,7 @@ function! s:EdTime.sort_by_edtime(a, b) dict
     let r = 0
   endif
 
-  return r * (self.sort_order_is_desc ? -1 : 1)
+  return r * (self.is_sort_order_desc ? -1 : 1)
 endfunction
 
 function! s:EdTime.sort_by_name(a, b) dict
@@ -284,7 +284,7 @@ function! s:EdTime.sort_by_name(a, b) dict
     let r = 0
   endif
 
-  return r * (self.sort_order_is_desc ? -1 : 1)
+  return r * (self.is_sort_order_desc ? -1 : 1)
 endfunction
 
 " returns whether {f} is ignored or not
@@ -305,14 +305,14 @@ function! s:EdTime.is_ignored(f) dict
     return 1
   endif
 
-  if !empty(self.accept_pattern)
-    if a:f !~# self.accept_pattern
+  if !empty(self.accept_path_pattern)
+    if a:f !~# self.accept_path_pattern
       return 1
     endif
   endif
 
-  if !empty(self.ignore_pattern)
-    if a:f =~# self.ignore_pattern
+  if !empty(self.ignore_path_pattern)
+    if a:f =~# self.ignore_path_pattern
       return 1
     endif
   endif
@@ -335,10 +335,10 @@ if !isdirectory(s:data_dir)
 endif
 let s:EdTime.data_dir = s:data_dir
 
-" NOTE: files that `accept_pattern` - `ignore_pattern` are managed
+" NOTE: files that `accept_path_pattern` - `ignore_path_pattern` are managed
 " if both pattern are specified
-let s:EdTime.accept_pattern = s:expand_path(get(g:, 'edtime_accept_pattern', ''))
-let s:EdTime.ignore_pattern = s:expand_path(get(g:, 'edtime_ignore_pattern', ''))
+let s:EdTime.accept_path_pattern = s:expand_path(get(g:, 'edtime_accept_path_pattern', ''))
+let s:EdTime.ignore_path_pattern = s:expand_path(get(g:, 'edtime_ignore_path_pattern', ''))
 
 let s:EdTime.is_display_zero = get(g:, 'edtime_is_display_zero', 0)
 let s:EdTime.max_rank = get(g:, 'edtime_max_rank', 10)
@@ -354,8 +354,8 @@ if index(s:sort_functions, s:sort_method) == -1
 endif
 let s:EdTime.sort_function = s:EdTime[s:sort_method]
 
-let s:EdTime.sort_base_is_today = get(g:, 'edtime_sort_base_is_today', 1)
-let s:EdTime.sort_order_is_desc = get(g:, 'edtime_sort_order_is_desc', 1)
+let s:EdTime.is_sort_base_today = get(g:, 'edtime_is_sort_base_today', 1)
+let s:EdTime.is_sort_order_desc = get(g:, 'edtime_is_sort_order_desc', 1)
 " }}}
 
 
@@ -364,3 +364,4 @@ unlet s:saved_cpo
 
 "__END__
 " vim: fen fdm=marker ft=vim ts=2 sw=2 sts=2:
+
