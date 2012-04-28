@@ -1,5 +1,5 @@
-" edtime.vim
-" Maintainer: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
+" autoload/edtime.vim
+" Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
 " License: MIT License
 " Version: 0.0.1
 
@@ -38,17 +38,21 @@ endfunction
 
 function! s:format_time(t)
   let ans = s:divide(round(a:t))
-  let str = ''
+  let time = ''
+
+  if s:is_debug
+    return string(a:t)
+  endif
 
   if 0 < ans.day
     let tpl = '%d '
     let tpl .= (1 < ans.day ? 'days' : 'day') . ', '
-    let str = printf(tpl , ans.day)
+    let time = printf(tpl , ans.day)
   endif
 
-  let str .= printf('%02d:%02d', ans.hour, ans.min)
+  let time .= printf('%02d:%02d', ans.hour, ans.min)
 
-  return str
+  return time 
 endfunction
 
 function! s:longest_path_length(ary2)
@@ -71,7 +75,7 @@ endfunction
 
 function! edtime#new(f)
   let obj = deepcopy(s:EdTime)
-  let obj.db = a:f
+  call obj.set_db(a:f)
   call obj.load()
   return obj
 endfunction
@@ -85,6 +89,10 @@ endfunction
 " Object " {{{
 let s:EdTime = {}
 
+function! s:EdTime.set_db(name) dict
+  let self.db = self.data_dir . '/' . a:name
+endfunction
+
 function! s:EdTime.start(f) dict
   if self.is_ignored(a:f)
     return
@@ -94,9 +102,16 @@ function! s:EdTime.start(f) dict
     call self.add_file(a:f)
   endif
 
+  if has_key(self.files[a:f], 'cursor_pos')
+    if getpos('.') != self.files[a:f].cursor_pos
+      call self.stop(a:f)
+    endif
+  endif
+
   " date might be changed when the file is being edited
-  let self.db = edtime#dbname(0)
+  call self.set_db(edtime#dbname(0))
   let self.files[a:f].start = reltime()
+  let self.files[a:f].cursor_pos = getpos('.')
 endfunction
 
 function! s:EdTime.stop(f) dict
@@ -235,7 +250,7 @@ function! s:EdTime.sort(files) dict
 endfunction
 
 function! s:EdTime.filter(list)
-  let l = filter(a:list, '0 < v:val[1].total')
+  let l = filter(a:list, '0.0 < v:val[1].total')
   return filter(l, 'filereadable(v:val[0])')
 endfunction
 
@@ -305,9 +320,20 @@ function! s:EdTime.is_ignored(f) dict
   return 0
 endfunction
 
+let s:is_debug = get(g:, 'edtime_is_debug', 0)
+
+""
+" Initialization etc ...
+"
 let s:EdTime.files = {}
 let s:EdTime.db = ''
 let s:EdTime.summary = {}
+
+let s:data_dir = expand(get(g:, 'edtime_data_dir', '~/.edtime'))
+if !isdirectory(s:data_dir)
+  call mkdir(s:data_dir, 'p')
+endif
+let s:EdTime.data_dir = s:data_dir
 
 " NOTE: files that `accept_pattern` - `ignore_pattern` are managed
 " if both pattern are specified
@@ -328,7 +354,7 @@ if index(s:sort_functions, s:sort_method) == -1
 endif
 let s:EdTime.sort_function = s:EdTime[s:sort_method]
 
-let s:EdTime.sort_base_is_today = get(g:,'edtime_sort_base_is_today', 1)
+let s:EdTime.sort_base_is_today = get(g:, 'edtime_sort_base_is_today', 1)
 let s:EdTime.sort_order_is_desc = get(g:, 'edtime_sort_order_is_desc', 1)
 " }}}
 

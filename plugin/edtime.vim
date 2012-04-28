@@ -1,12 +1,12 @@
 " edtime.vim
-" Maintainer: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
+" Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
 " License: MIT License
 " Version: 0.0.1
 
-" if exists('g:loaded_edtime') || &cp
-"   finish
-" endif
-" let g:loaded_edtime = 1
+if exists('g:loaded_edtime') || &cp
+  finish
+endif
+let g:loaded_edtime = 1
 
 if !has('reltime')
   finish
@@ -19,23 +19,11 @@ let s:saved_cpo = &cpo
 set cpo&vim
 
 
-" Utilities " {{{
-function! s:to_path(...)
-  return join(a:000, '/')
-endfunction
-" }}}
-
-
-let s:data_dir = expand(get(g:, 'edtime_data_dir', '~/.edtime'))
-if !isdirectory(s:data_dir)
-  call mkdir(s:data_dir, 'p')
-endif
-
 " data-file is managed each day
 " today
-let s:edt = edtime#new(s:to_path(s:data_dir, edtime#dbname(0)))
+let s:edt = edtime#new(edtime#dbname(0))
 " total
-let s:edt.summary = edtime#new(s:to_path(s:data_dir, edtime#dbname(1)))
+let s:edt.summary = edtime#new(edtime#dbname(1))
 
 " Command
 command! -nargs=0 EdTime call s:edt.show()
@@ -47,6 +35,7 @@ augroup EdTime
 
   autocmd BufEnter,FocusGained * call s:edt.start(expand('%:p'))
   autocmd BufLeave,FocusLost,VimLeave * call s:edt.stop(expand('%:p'))
+  autocmd CursorHold,CursorHoldI * call s:edt.start(expand('%:p'))
 augroup END
 
 
