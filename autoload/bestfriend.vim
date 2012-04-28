@@ -1,4 +1,4 @@
-" autoload/edtime.vim
+" autoload/bestfriend.vim
 " Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
 " License: MIT License
 " Version: 0.0.1
@@ -70,30 +70,30 @@ endfunction
 " }}}
 
 " public " {{{
-function! edtime#complete(A, L, P)
+function! bestfriend#complete(A, L, P)
 endfunction
 
-function! edtime#new(f)
-  let obj = deepcopy(s:EdTime)
+function! bestfriend#new(f)
+  let obj = deepcopy(s:BestFriend)
   call obj.set_db(a:f)
   call obj.load()
   return obj
 endfunction
 
 " args: k: int: 0 => today's, 1 => full
-function! edtime#dbname(k)
+function! bestfriend#dbname(k)
   return a:k ? 'full.db' : strftime('%Y%m%d.db')
 endfunction
 " }}}
 
 " Object " {{{
-let s:EdTime = {}
+let s:BestFriend = {}
 
-function! s:EdTime.set_db(name) dict
+function! s:BestFriend.set_db(name) dict
   let self.db = self.data_dir . '/' . a:name
 endfunction
 
-function! s:EdTime.start(f) dict
+function! s:BestFriend.start(f) dict
   if self.is_ignored(a:f)
     return
   endif
@@ -109,12 +109,12 @@ function! s:EdTime.start(f) dict
   endif
 
   " date might be changed when the file is being edited
-  call self.set_db(edtime#dbname(0))
+  call self.set_db(bestfriend#dbname(0))
   let self.files[a:f].start = reltime()
   let self.files[a:f].cursor_pos = getpos('.')
 endfunction
 
-function! s:EdTime.stop(f) dict
+function! s:BestFriend.stop(f) dict
   if !has_key(self.files, a:f)
     return
   endif
@@ -128,28 +128,28 @@ function! s:EdTime.stop(f) dict
   call self.reset(a:f)
 endfunction
 
-function! s:EdTime.has_file(f) dict
+function! s:BestFriend.has_file(f) dict
   return has_key(self.files, a:f)
 endfunction
 
-function! s:EdTime.add_file(f) dict
+function! s:BestFriend.add_file(f) dict
   let self.files[a:f] = { 'start': [], 'end': [], 'total': 0 }
 endfunction
 
-function! s:EdTime.reset(f) dict
+function! s:BestFriend.reset(f) dict
   let self.files[a:f].start = []
   let self.files[a:f].end = []
 endfunction
 
-function! s:EdTime.get_total(k) dict
+function! s:BestFriend.get_total(k) dict
   return self.has_file(a:k) ? self.files[a:k].total : 0
 endfunction
 
-function! s:EdTime.remove(f) dict
+function! s:BestFriend.remove(f) dict
   call remove(self.files, a:f)
 endfunction
 
-function! s:EdTime.calc(f) dict
+function! s:BestFriend.calc(f) dict
   let pass = str2float(reltimestr(reltime(self.files[a:f].start, self.files[a:f].end)))
   let self.files[a:f].total += pass
 
@@ -162,7 +162,7 @@ function! s:EdTime.calc(f) dict
   call self.summary.save()
 endfunction
 
-function! s:EdTime.save() dict
+function! s:BestFriend.save() dict
   let files = []
   for [k, v] in items(self.files)
     " call add(files, k)
@@ -173,7 +173,7 @@ function! s:EdTime.save() dict
   call writefile(files, self.db)
 endfunction
 
-function! s:EdTime.load() dict
+function! s:BestFriend.load() dict
   if !filereadable(self.db)
     return
   endif
@@ -189,7 +189,7 @@ endfunction
 
 " TODO: display into a buffer
 " TODO: omit file name if it's better
-function! s:EdTime.show(...) dict
+function! s:BestFriend.show(...) dict
   try
     call self.stop(s:curfile())
 
@@ -235,7 +235,7 @@ function! s:EdTime.show(...) dict
   endtry
 endfunction
 
-function! s:EdTime.sort(files) dict
+function! s:BestFriend.sort(files) dict
   let list = []
 
   for [k, v] in items(a:files)
@@ -243,18 +243,18 @@ function! s:EdTime.sort(files) dict
   endfor
 
   if empty(self.sort_function)
-    let self.sort_function = self.sort_by_edtime
+    let self.sort_function = self.sort_by_bestfriend
   endif
 
   return sort(sort(list), self.sort_function, self)
 endfunction
 
-function! s:EdTime.filter(list)
+function! s:BestFriend.filter(list)
   let l = filter(a:list, '0.0 < v:val[1].total')
   return filter(l, 'filereadable(v:val[0])')
 endfunction
 
-function! s:EdTime.sort_by_edtime(a, b) dict
+function! s:BestFriend.sort_by_bestfriend(a, b) dict
   " a:a[0] => key, [1] => {'total': 999.99}
   let a = a:a[1].total
   let b = a:b[1].total
@@ -271,7 +271,7 @@ function! s:EdTime.sort_by_edtime(a, b) dict
   return r * (self.is_sort_order_desc ? -1 : 1)
 endfunction
 
-function! s:EdTime.sort_by_name(a, b) dict
+function! s:BestFriend.sort_by_name(a, b) dict
   let a = a:a[0]
   let b = a:b[0]
   let r = 0
@@ -288,7 +288,7 @@ function! s:EdTime.sort_by_name(a, b) dict
 endfunction
 
 " returns whether {f} is ignored or not
-function! s:EdTime.is_ignored(f) dict
+function! s:BestFriend.is_ignored(f) dict
   if empty(a:f)
     return 1
   endif
@@ -320,42 +320,42 @@ function! s:EdTime.is_ignored(f) dict
   return 0
 endfunction
 
-let s:is_debug = get(g:, 'edtime_is_debug', 0)
+let s:is_debug = get(g:, 'bestfriend_is_debug', 0)
 
 ""
 " Initialization etc ...
 "
-let s:EdTime.files = {}
-let s:EdTime.db = ''
-let s:EdTime.summary = {}
+let s:BestFriend.files = {}
+let s:BestFriend.db = ''
+let s:BestFriend.summary = {}
 
-let s:data_dir = expand(get(g:, 'edtime_data_dir', '~/.edtime'))
+let s:data_dir = expand(get(g:, 'bestfriend_data_dir', '~/.bestfriend'))
 if !isdirectory(s:data_dir)
   call mkdir(s:data_dir, 'p')
 endif
-let s:EdTime.data_dir = s:data_dir
+let s:BestFriend.data_dir = s:data_dir
 
 " NOTE: files that `accept_path_pattern` - `ignore_path_pattern` are managed
 " if both pattern are specified
-let s:EdTime.accept_path_pattern = s:expand_path(get(g:, 'edtime_accept_path_pattern', ''))
-let s:EdTime.ignore_path_pattern = s:expand_path(get(g:, 'edtime_ignore_path_pattern', ''))
+let s:BestFriend.accept_path_pattern = s:expand_path(get(g:, 'bestfriend_accept_path_pattern', ''))
+let s:BestFriend.ignore_path_pattern = s:expand_path(get(g:, 'bestfriend_ignore_path_pattern', ''))
 
-let s:EdTime.is_display_zero = get(g:, 'edtime_is_display_zero', 0)
-let s:EdTime.max_rank = get(g:, 'edtime_max_rank', 10)
+let s:BestFriend.is_display_zero = get(g:, 'bestfriend_is_display_zero', 0)
+let s:BestFriend.max_rank = get(g:, 'bestfriend_max_rank', 10)
 
 " sort
-let s:sort_functions = filter(keys(s:EdTime),
-      \ 'v:val =~ "^sort_by_" && type(s:EdTime[v:val]) == type(function("tr"))')
+let s:sort_functions = filter(keys(s:BestFriend),
+      \ 'v:val =~ "^sort_by_" && type(s:BestFriend[v:val]) == type(function("tr"))')
 
-let s:DEFAULT_SORT_METHOD = 'sort_by_edtime'
-let s:sort_method = get(g:, 'edtime_sort_method', s:DEFAULT_SORT_METHOD)
+let s:DEFAULT_SORT_METHOD = 'sort_by_bestfriend'
+let s:sort_method = get(g:, 'bestfriend_sort_method', s:DEFAULT_SORT_METHOD)
 if index(s:sort_functions, s:sort_method) == -1
   let s:sort_method = s:DEFAULT_SORT_METHOD
 endif
-let s:EdTime.sort_function = s:EdTime[s:sort_method]
+let s:BestFriend.sort_function = s:BestFriend[s:sort_method]
 
-let s:EdTime.is_sort_base_today = get(g:, 'edtime_is_sort_base_today', 1)
-let s:EdTime.is_sort_order_desc = get(g:, 'edtime_is_sort_order_desc', 1)
+let s:BestFriend.is_sort_base_today = get(g:, 'bestfriend_is_sort_base_today', 1)
+let s:BestFriend.is_sort_order_desc = get(g:, 'bestfriend_is_sort_order_desc', 1)
 " }}}
 
 
