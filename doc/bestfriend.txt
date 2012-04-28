@@ -1,0 +1,131 @@
+*bestfriend.txt*  Know your best friend.
+
+*bestfriend.vim*
+Version: 0.0.1
+Author:  tacahiroy <https://github.com/tacahiroy>
+
+
+==============================================================================
+CONTENTS					*bestfriend-contents*
+
+|bestfriend-intro|		Introduction
+|bestfriend-commands|		Commands
+|bestfriend-settings|		Settings
+|bestfriend-license|		License
+|bestfriend-about|		About
+
+==============================================================================
+INTRODUCTION					*bestfriend-intro*
+
+*bestfriend.vim* is an edit time counter.
+It requires Vim 7.0 or later.
+
+Maybe, this plugin only works if 'compatible' is not set.
+{Vi does not have any of these features.}
+
+
+==============================================================================
+COMMANDS					*bestfriend-commands*
+
+						*bestfriend-:BestFriend*
+:BestFriend
+	Show only edit time of the current file.
+	Display format is following:
+	<rank> <path> <edit time(today)> <edit time(total)>
+	---------------------------------------------------
+	  1: ~/.vimrc 00:05 01:20
+
+:BestFriends
+	Show ranking (default: up to 10) of edit time.
+	Display limit is controlled by |g:bestfriend_max_rank|.
+
+
+==============================================================================
+SETTINGS					*bestfriend-settings*
+These variables control behaviour of |bestfriend.vim|.
+
+
+						*g:bestfriend_data_dir*
+You can specify data directory, the data are saved specified directory.
+>
+	let g:bestfriend_data_dir = '~/.bestfriend'
+<
+
+						*g:bestfriend_accept_path_pattern*
+A file is managed that matched this pattern.
+If this variable is not set or empty, all files are managed.
+Note that pattern is compared to absolute path.
+>
+	let g:bestfriend_accept_path_pattern = ''
+<
+
+						*g:bestfriend_ignore_path_pattern*
+A file is NOT managed that matched this pattern.
+Note that this variable is prior to |g:bestfriend_accept_path_pattern|.>
+
+	let g:bestfriend_ignore_path_pattern = ''
+<
+
+						*g:bestfriend_is_display_zero*
+If you want to see files that edit time is less than a minute, you must
+set 1 (enabled) this variable.
+>
+	let g:bestfriend_is_display_zero = 0
+<
+
+						*g:bestfriend_display_limit*
+This variable controls display limit when you run command |:BestFriends|.
+If 0 is specified, you can see ranking of all managed files.
+>
+	let g:bestfriend_display_limit = 10
+<
+
+						*g:bestfriend_is_sort_base_today*
+This variable controls sort standard. If 1 (enabled), sort runs based on
+today's edit time. If 0 (disabled), total edit time.
+>
+	let g:bestfriend_is_sort_base_today = 1
+<
+						*g:bestfriend_is_sort_order_desc*
+This variable controls sort order. If 1 (enabled), sort order is descending.
+If 0 (disabled), ascending.
+>
+let g:bestfriend_is_sort_order_desc = 1
+<
+
+
+==============================================================================
+LICENSE						*bestfriend-license*
+
+bestfriend.vim is released under the MIT License:
+
+Copyright 2012 Takahiro YOSHIHARA
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+The software is provided "as is", without warranty of any kind, express or
+implied, including but not limited to the warranties of merchantability,
+fitness for a particular purpose and noninfringement. In no event shall the
+authors or copyright holders be liable for any claim, damages or other
+liability, whether in an action of contract, tort or otherwise, arising from,
+out of or in connection with the software or the use or other dealings in the
+software.
+
+
+==============================================================================
+ABOUT                                           *bestfriend-about*
+
+You can get the latest version on GitHub:
+
+https://github.com/tacahiroy/vim-bestfriend
+
+
+ vim:tw=78:et:ts=8:ft=help:norl:
