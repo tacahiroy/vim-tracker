@@ -26,11 +26,11 @@ let s:bf = bestfriend#new(bestfriend#dbname(0))
 let s:bf.summary = bestfriend#new(bestfriend#dbname(1))
 
 let is_detect_cursor_move = get(g:, 'bestfriend_is_detect_cursor_move',
-                                   \ has('gui_running') ? '0' : '1')
+                                   \ has('gui_running') ? 0 : 1)
 
 " Command
 command! -nargs=0 BestFriend call s:bf.show()
-command! -nargs=0 BestFriendAll call s:bf.show('all')
+command! -nargs=0 BestFriends call s:bf.show('all')
 
 
 augroup BestFriend

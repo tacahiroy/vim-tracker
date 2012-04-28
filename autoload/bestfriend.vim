@@ -216,7 +216,7 @@ function! s:BestFriend.show(...) dict
     if !self.is_display_zero
       let sortedlist = self.filter(sortedlist)
     endif
-    let sortedlist = sortedlist[0:self.max_rank - 1]
+    let sortedlist = sortedlist[0:self.display_limit - 1]
 
     let fmt = '%3d: '
     let fmt .= printf('%%-%ds ', s:longest_path_length(sortedlist))
@@ -341,7 +341,7 @@ let s:BestFriend.accept_path_pattern = s:expand_path(get(g:, 'bestfriend_accept_
 let s:BestFriend.ignore_path_pattern = s:expand_path(get(g:, 'bestfriend_ignore_path_pattern', ''))
 
 let s:BestFriend.is_display_zero = get(g:, 'bestfriend_is_display_zero', 0)
-let s:BestFriend.max_rank = get(g:, 'bestfriend_max_rank', 10)
+let s:BestFriend.display_limit = get(g:, 'bestfriend_display_limit', 10)
 
 " sort
 let s:sort_functions = filter(keys(s:BestFriend),
