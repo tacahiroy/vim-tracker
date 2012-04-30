@@ -17,7 +17,7 @@ CONTENTS					*bestfriend-contents*
 ==============================================================================
 INTRODUCTION					*bestfriend-intro*
 
-*bestfriend.vim* is an edit time counter.
+|bestfriend.vim| is an edit time counter.
 It requires Vim 7.0 or later.
 
 Maybe, this plugin only works if 'compatible' is not set.
@@ -35,6 +35,7 @@ COMMANDS					*bestfriend-commands*
 	---------------------------------------------------
 	  1: ~/.vimrc 00:05 01:20
 
+						*bestfriend-:BestFriends*
 :BestFriends
 	Show ranking (default: up to 10) of edit time.
 	Display limit is controlled by |g:bestfriend_max_rank|.
