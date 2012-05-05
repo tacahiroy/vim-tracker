@@ -1,14 +1,22 @@
 " autoload/bestfriend.vim
 " Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
 " License: MIT License
-" Version: 0.0.1
 
 let s:saved_cpo = &cpo
 set cpo&vim
 
 
+let s:STOP  = 0
+let s:START = 1
+
 " Utilities " {{{
 " returns current file's absolute path
+function! s:debug(msg)
+  if s:is_debug
+    echomsg a:msg
+  endif
+endfunction
+
 function! s:curfile()
   return expand('%:p')
 endfunction
@@ -102,23 +110,23 @@ function! s:BestFriend.start(f) dict
     call self.add_file(a:f)
   endif
 
-  if has_key(self.files[a:f], 'cursor_pos')
-    if getpos('.') != self.files[a:f].cursor_pos
-      call self.stop(a:f)
-    endif
+  if self.files[a:f].status == s:START
+    return
   endif
 
   " date might be changed when the file is being edited
   call self.set_db(bestfriend#dbname(0))
   let self.files[a:f].start = reltime()
-  let self.files[a:f].cursor_pos = getpos('.')
+  let self.files[a:f].status = s:START
+  let self.files[a:f].cursor_position = getpos('.')
 endfunction
 
 function! s:BestFriend.stop(f) dict
-  if !has_key(self.files, a:f)
+  if !self.has_file(a:f)
     return
   endif
-  if empty(self.files[a:f].start)
+
+  if self.files[a:f].status == s:STOP
     return
   endif
 
@@ -128,17 +136,40 @@ function! s:BestFriend.stop(f) dict
   call self.reset(a:f)
 endfunction
 
+function! s:BestFriend.detect_cursor_move(f) dict
+  if !self.is_detect_cursor_move
+    return
+  endif
+
+  if !self.has_file(a:f)
+    return
+  endif
+
+  let cur_pos = getpos('.')
+
+  if self.files[a:f].cursor_position == cur_pos
+    call self.stop(a:f)
+  else
+    if self.files[a:f].status == s:STOP
+      call self.start(a:f)
+    else
+      let self.files[a:f].cursor_position = cur_pos
+    endif
+  endif
+endfunction
+
 function! s:BestFriend.has_file(f) dict
   return has_key(self.files, a:f)
 endfunction
 
 function! s:BestFriend.add_file(f) dict
-  let self.files[a:f] = { 'start': [], 'end': [], 'total': 0 }
+  let self.files[a:f] = { 'start': [], 'end': [], 'total': 0, 'status': s:STOP }
 endfunction
 
 function! s:BestFriend.reset(f) dict
   let self.files[a:f].start = []
   let self.files[a:f].end = []
+  let self.files[a:f].status = s:STOP
 endfunction
 
 function! s:BestFriend.get_total(k) dict
@@ -182,7 +213,7 @@ function! s:BestFriend.load() dict
   for f in files
     for [k, v] in items(eval(f))
       let self.files[k] = v
-      call extend(self.files[k], {'start': [], 'end': []})
+      call extend(self.files[k], {'start': [], 'end': [], 'status': s:STOP})
     endfor
   endfor
 endfunction
@@ -356,6 +387,9 @@ let s:BestFriend.sort_function = s:BestFriend[s:sort_method]
 
 let s:BestFriend.is_sort_base_today = get(g:, 'bestfriend_is_sort_base_today', 1)
 let s:BestFriend.is_sort_order_desc = get(g:, 'bestfriend_is_sort_order_desc', 1)
+
+let s:BestFriend.is_detect_cursor_move = get(g:, 'bestfriend_is_detect_cursor_move',
+                                                \ has('gui_running') ? 0 : 1)
 " }}}
 
 

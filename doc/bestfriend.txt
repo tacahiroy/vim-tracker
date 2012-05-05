@@ -1,7 +1,7 @@
 *bestfriend.txt*  Know your best friend.
 
 *bestfriend.vim*
-Version: 0.0.1
+Version: 0.0.3
 Author:  tacahiroy <https://github.com/tacahiroy>
 
 
@@ -59,12 +59,20 @@ Note that pattern is compared to absolute path.
 >
 	let g:bestfriend_accept_path_pattern = ''
 <
+>
+	e.g.:
+	let g:bestfriend_accept_path_pattern = '\(^~/project/\|^/etc\)'
+<
 
 						*g:bestfriend_ignore_path_pattern*
 A file is NOT managed that matched this pattern.
-Note that this variable is prior to |g:bestfriend_accept_path_pattern|.>
-
+Note that this variable is prior to |g:bestfriend_accept_path_pattern|.
+>
 	let g:bestfriend_ignore_path_pattern = ''
+<
+>
+	e.g.:
+	let g:bestfriend_ignore_path_pattern = '\(^/tmp\|tags$\|NERD_tree_\d\+\)'
 <
 
 						*g:bestfriend_is_display_zero*
@@ -76,7 +84,7 @@ set 1 (enabled) this variable.
 
 						*g:bestfriend_display_limit*
 This variable controls display limit when you run command |:BestFriends|.
-If 0 is specified, you can see ranking of all managed files.
+If 0 (no limit) is specified, you can see ranking of all managed files.
 >
 	let g:bestfriend_display_limit = 10
 <
@@ -91,7 +99,17 @@ today's edit time. If 0 (disabled), total edit time.
 This variable controls sort order. If 1 (enabled), sort order is descending.
 If 0 (disabled), ascending.
 >
-let g:bestfriend_is_sort_order_desc = 1
+	let g:bestfriend_is_sort_order_desc = 1
+<
+						*g:bestfriend_is_observe_cursor_position*
+This variable is set to 1 (enabled), then |bestfriend.vim| observe cursor
+position every |updatetime|. And then, if cursor position is not changed, time
+calculation will be stopped. Basically, |bestfriend.vim| observe |FocusGained|,
+|FocusLost| on gVim, but there are NOT these events on Vim (CUI). This
+variable is used to understand the file is being edited or not on Vim.
+>
+	" default: Vim: 1, gVim: 0
+	let g:bestfriend_is_observe_cursor_position = 0/1
 <
 
 
