@@ -101,7 +101,7 @@ If 0 (disabled), ascending.
 >
 	let g:bestfriend_is_sort_order_desc = 1
 <
-						*g:bestfriend_is_observe_cursor_position*
+						*g:bestfriend_observe_cursor_position*
 This variable is set to 1 (enabled), then |bestfriend.vim| observe cursor
 position every |updatetime|. And then, if cursor position is not changed, time
 calculation will be stopped. Basically, |bestfriend.vim| observe |FocusGained|,
@@ -109,7 +109,7 @@ calculation will be stopped. Basically, |bestfriend.vim| observe |FocusGained|,
 variable is used to understand the file is being edited or not on Vim.
 >
 	" default: Vim: 1, gVim: 0
-	let g:bestfriend_is_observe_cursor_position = 0/1
+	let g:bestfriend_observe_cursor_position = 0/1
 <
 
 

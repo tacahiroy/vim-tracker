@@ -137,7 +137,7 @@ function! s:BestFriend.stop(f) dict
 endfunction
 
 function! s:BestFriend.detect_cursor_move(f) dict
-  if !self.is_detect_cursor_move
+  if !self.observe_cursor_position
     return
   endif
 
@@ -388,8 +388,8 @@ let s:BestFriend.sort_function = s:BestFriend[s:sort_method]
 let s:BestFriend.is_sort_base_today = get(g:, 'bestfriend_is_sort_base_today', 1)
 let s:BestFriend.is_sort_order_desc = get(g:, 'bestfriend_is_sort_order_desc', 1)
 
-let s:BestFriend.is_detect_cursor_move = get(g:, 'bestfriend_is_detect_cursor_move',
-                                                \ has('gui_running') ? 0 : 1)
+let s:BestFriend.observe_cursor_position = get(g:, 'bestfriend_observe_cursor_position',
+                                                   \ has('gui_running') ? 0 : 1)
 " }}}
 
 
