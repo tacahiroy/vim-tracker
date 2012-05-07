@@ -48,7 +48,8 @@ Actually bestfriend.vim provides several options.
 Related links
 ----------
 
-[GitHub](https://github.com/tacahiroy/vim-bestfriend)
+[GitHub](https://github.com/tacahiroy/vim-bestfriend)  
+[vim.org](http://www.vim.org/scripts/script.php?script_id=4037)
 
 License
 ----------
