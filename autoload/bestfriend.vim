@@ -1,5 +1,5 @@
 " autoload/bestfriend.vim
-" Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
+" Author: Takahiro YOSHIHARA <tacahiroy\AT/gmail.com>
 " License: MIT License
 
 let s:saved_cpo = &cpo
@@ -261,10 +261,108 @@ function! s:BestFriend.show(...) dict
 
       let i += 1
     endfor
+    call self.Buffer.write(sortedlist)
   finally
     call self.start(s:curfile())
   endtry
 endfunction
+
+let s:BestFriend.Buffer = {
+      \ 'NAME': '[BestFriend]',
+      \ 'sp': 'split',
+      \ 'number': -1
+\ }
+
+function! s:dirname(path)
+  return fnamemodify(a:path, ':p:h:t')
+endfunction
+
+function! s:basename(path)
+  return fnamemodify(a:path, ':p:t')
+endfunction
+
+function! s:buildpath(...)
+  return join(a:000, '/')
+endfunction
+
+function! s:BestFriend.Buffer.write(data) dict
+  let cur_bufnr = bufnr('%')
+
+  call self.open(1)
+  call self.focus()
+
+  let width = {'name': 30, 'bar': 0 }
+  let width.bar = &columns - width.name - 10
+  let longest = float2nr(floor((a:data[0][1].total / 60)))
+  let fmt = '[%-' . width.name . 's]%s %s'
+
+  for [k, v] in a:data
+    let min = float2nr(floor(v.total) / 60)
+    let rate = (1.0 * min / longest)
+    let time = s:format_time(v.total)
+    let cnt = float2nr(round((width.bar - len(time) + 1) * rate))
+    echom cnt
+
+    silent $ put = printf(fmt, s:buildpath(s:dirname(k), s:basename(k))[0:28], repeat(nr2char(9), cnt), time)
+  endfor
+  execute '0delete'
+
+  call cursor(1, 1)
+  execute bufwinnr(cur_bufnr) . 'wincmd w'
+
+  redraw!
+endfunction
+
+function! s:BestFriend.Buffer.exists() dict
+  return bufexists(self.number)
+endfunction
+
+function! s:BestFriend.Buffer.is_open() dict
+  return bufwinnr(self.number) != -1
+endfunction
+
+function! s:BestFriend.Buffer.open(clear) dict
+  let cur_bufwinnr = bufwinnr('%')
+
+  if !self.is_open()
+    silent execute self.sp
+    silent edit `=self.NAME`
+
+    let self.number = bufnr('%')
+
+    setlocal buftype=nofile syntax=bestfriend bufhidden=hide
+    setlocal filetype=bestfriend tabstop=1
+    setlocal noswapfile nobuflisted
+  endif
+
+  call self.focus()
+  call s:BestFriend.Buffer.enable_syntax()
+  execute cur_bufwinnr . 'wincmd w'
+
+  if a:clear
+    call self.clear(cur_bufwinnr)
+  endif
+endfunction
+
+function! s:BestFriend.Buffer.clear(bufwinnr) dict
+  call self.focus()
+  execute '%delete _'
+  execute a:bufwinnr . 'wincmd w'
+endfunction
+
+function! s:BestFriend.Buffer.focus() dict
+  if self.is_open()
+    let mybufwinnr = bufwinnr(self.number)
+    if mybufwinnr != bufwinnr('%')
+      execute mybufwinnr . 'wincmd w'
+    endif
+  endif
+endfunction
+
+function! s:BestFriend.Buffer.enable_syntax()
+  syn match Bar '\t'
+  hi Bar cterm=bold ctermbg=green ctermfg=green gui=bold guifg=green guibg=green
+endf
 
 function! s:BestFriend.sort(files) dict
   let list = []
