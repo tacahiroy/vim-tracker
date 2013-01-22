@@ -75,6 +75,26 @@ function! s:longest_path_length(ary2)
 
   return mlen
 endfunction
+
+function! s:dirname(path)
+  return fnamemodify(a:path, ':p:h:t')
+endfunction
+
+function! s:basename(path)
+  return fnamemodify(a:path, ':p:t')
+endfunction
+
+function! s:buildpath(...)
+  return join(a:000, '/')
+endfunction
+
+function! s:numberwidth()
+  if &number || (703 <= v:version && &relativenumber)
+    return &numberwidth
+  else
+    return 0
+  endif
+endfunction
 " }}}
 
 " public " {{{
@@ -94,7 +114,7 @@ function! bestfriend#dbname(k)
 endfunction
 " }}}
 
-" Object " {{{
+" Object: BestFriend " {{{
 let s:BestFriend = {}
 
 function! s:BestFriend.set_db(name) dict
@@ -257,7 +277,7 @@ function! s:BestFriend.show(...) dict
     for [k, v] in sortedlist
       let sum = s:format_time(self.summary.files[k].total)
       let today = s:format_time(self.get_total(k))
-      echo printf(fmt, i, s:shorten_path(k), today, sum)
+      " echo printf(fmt, i, s:shorten_path(k), today, sum)
 
       let i += 1
     endfor
@@ -266,103 +286,6 @@ function! s:BestFriend.show(...) dict
     call self.start(s:curfile())
   endtry
 endfunction
-
-let s:BestFriend.Buffer = {
-      \ 'NAME': '[BestFriend]',
-      \ 'sp': 'split',
-      \ 'number': -1
-\ }
-
-function! s:dirname(path)
-  return fnamemodify(a:path, ':p:h:t')
-endfunction
-
-function! s:basename(path)
-  return fnamemodify(a:path, ':p:t')
-endfunction
-
-function! s:buildpath(...)
-  return join(a:000, '/')
-endfunction
-
-function! s:BestFriend.Buffer.write(data) dict
-  let cur_bufnr = bufnr('%')
-
-  call self.open(1)
-  call self.focus()
-
-  let width = {'name': 30, 'bar': 0 }
-  let width.bar = &columns - width.name - 10
-  let longest = float2nr(floor((a:data[0][1].total / 60)))
-  let fmt = '[%-' . width.name . 's]%s %s'
-
-  for [k, v] in a:data
-    let min = float2nr(floor(v.total) / 60)
-    let rate = (1.0 * min / longest)
-    let time = s:format_time(v.total)
-    let cnt = float2nr(round((width.bar - len(time) + 1) * rate))
-    echom cnt
-
-    silent $ put = printf(fmt, s:buildpath(s:dirname(k), s:basename(k))[0:28], repeat(nr2char(9), cnt), time)
-  endfor
-  execute '0delete'
-
-  call cursor(1, 1)
-  execute bufwinnr(cur_bufnr) . 'wincmd w'
-
-  redraw!
-endfunction
-
-function! s:BestFriend.Buffer.exists() dict
-  return bufexists(self.number)
-endfunction
-
-function! s:BestFriend.Buffer.is_open() dict
-  return bufwinnr(self.number) != -1
-endfunction
-
-function! s:BestFriend.Buffer.open(clear) dict
-  let cur_bufwinnr = bufwinnr('%')
-
-  if !self.is_open()
-    silent execute self.sp
-    silent edit `=self.NAME`
-
-    let self.number = bufnr('%')
-
-    setlocal buftype=nofile syntax=bestfriend bufhidden=hide
-    setlocal filetype=bestfriend tabstop=1
-    setlocal noswapfile nobuflisted
-  endif
-
-  call self.focus()
-  call s:BestFriend.Buffer.enable_syntax()
-  execute cur_bufwinnr . 'wincmd w'
-
-  if a:clear
-    call self.clear(cur_bufwinnr)
-  endif
-endfunction
-
-function! s:BestFriend.Buffer.clear(bufwinnr) dict
-  call self.focus()
-  execute '%delete _'
-  execute a:bufwinnr . 'wincmd w'
-endfunction
-
-function! s:BestFriend.Buffer.focus() dict
-  if self.is_open()
-    let mybufwinnr = bufwinnr(self.number)
-    if mybufwinnr != bufwinnr('%')
-      execute mybufwinnr . 'wincmd w'
-    endif
-  endif
-endfunction
-
-function! s:BestFriend.Buffer.enable_syntax()
-  syn match Bar '\t'
-  hi Bar cterm=bold ctermbg=green ctermfg=green gui=bold guifg=green guibg=green
-endf
 
 function! s:BestFriend.sort(files) dict
   let list = []
@@ -448,6 +371,101 @@ function! s:BestFriend.is_ignored(f) dict
 
   return 0
 endfunction
+" }}}
+
+" Object BestFriend.Buffer {{{
+let s:BestFriend.Buffer = {
+      \ 'NAME': '[BestFriend]',
+      \ 'sp': 'split',
+      \ 'number': -1
+\ }
+
+function! s:BestFriend.Buffer.write(data) dict
+  let cur_bufnr = bufnr('%')
+
+  call self.open(1)
+  call self.focus()
+
+  let width = {'name': 30, 'bar': winwidth(0) }
+  let longest = { 'path': a:data[0][0],
+                \ 'time': float2nr(floor((a:data[0][1].total / 60)))
+  \ }
+  let fmt = '%-' . width.name . 's%s'
+  " '() ' is time's parenthesis and a whitespace
+  let extra_space = s:numberwidth() + &foldcolumn + len('() ')
+  let bg = s:BestFriend.Buffer.colours.bar
+  let fg = s:BestFriend.Buffer.colours.path
+
+  for [k, v] in a:data
+    let min = float2nr(floor(v.total) / 60)
+    let rate = (1.0 * min / longest.time)
+    let time = s:format_time(v.total)
+    let cnt = float2nr((width.bar - len(time) - extra_space) * rate)
+    " For syntax highlight, a variable fmt doesn't include time section '(00:00)'
+    let line = printf(fmt, k, repeat(nr2char(9), cnt - len(k) - extra_space))
+
+    silent $ put = printf('(%s) ', time) . line
+    execute printf('syntax match BFBar%d "%s\ze%s"', cnt, strpart(line, 0, cnt-1), strpart(line, cnt-1))
+    execute printf('highlight BFBar%d ctermbg=%s ctermfg=%s guibg=%s guifg=%s', cnt, bg, fg, bg, fg)
+  endfor
+  execute '0delete'
+
+  call self.syntax()
+  call cursor(1, 1)
+  execute bufwinnr(cur_bufnr) . 'wincmd w'
+
+  redraw!
+endfunction
+
+function! s:BestFriend.Buffer.exists() dict
+  return bufexists(self.number)
+endfunction
+
+function! s:BestFriend.Buffer.is_open() dict
+  return bufwinnr(self.number) != -1
+endfunction
+
+function! s:BestFriend.Buffer.open(clear) dict
+  let cur_bufwinnr = bufwinnr('%')
+
+  if !self.is_open()
+    silent execute self.sp
+    silent edit `=self.NAME`
+
+    let self.number = bufnr('%')
+
+    setlocal buftype=nofile syntax=bestfriend bufhidden=hide
+    setlocal filetype=bestfriend tabstop=1
+    setlocal noswapfile nobuflisted
+  endif
+
+  if a:clear
+    call self.clear(cur_bufwinnr)
+  endif
+endfunction
+
+function! s:BestFriend.Buffer.clear(bufwinnr) dict
+  call self.focus()
+  execute '%delete _'
+  execute a:bufwinnr . 'wincmd w'
+endfunction
+
+function! s:BestFriend.Buffer.focus() dict
+  if self.is_open()
+    let mybufwinnr = bufwinnr(self.number)
+    if mybufwinnr != bufwinnr('%')
+      execute mybufwinnr . 'wincmd w'
+    endif
+  endif
+endfunction
+
+function! s:BestFriend.Buffer.syntax()
+  let fg = s:BestFriend.Buffer.colours.time
+  syntax match BFTime '^(\(\d days\? \)\?\d\{2}:\d\{2})'
+  execute printf('highlight BFTime ctermfg=%s cterm=Bold guifg=%s gui=Bold', fg, fg)
+endf
+" }}}
+
 
 let s:is_debug = get(g:, 'bestfriend_is_debug', 0)
 
@@ -488,8 +506,9 @@ let s:BestFriend.is_sort_order_desc = get(g:, 'bestfriend_is_sort_order_desc', 1
 
 let s:BestFriend.observe_cursor_position = get(g:, 'bestfriend_observe_cursor_position',
                                                    \ has('gui_running') ? 0 : 1)
-" }}}
 
+let s:BestFriend.Buffer.colours = get(g:, 'bestfriend_highlight_colours',
+      \ { 'bar': 'Green', 'path': 'Black', 'time': 'DarkRed' })
 
 let &cpo = s:saved_cpo
 unlet s:saved_cpo

@@ -26,8 +26,14 @@ let s:bf = bestfriend#new(bestfriend#dbname(0))
 let s:bf.summary = bestfriend#new(bestfriend#dbname(1))
 
 " Command
-command! -nargs=0 BestFriend call s:bf.show()
-command! -nargs=0 BestFriends call s:bf.show('all')
+command! -nargs=0 BestFriend
+      \  echoerr 'This command is obsoleted. Please use ":Relationship" instead'
+      \| call s:bf.show()
+command! -nargs=0 BestFriends
+      \  echoerr 'This command is obsoleted. Please use ":RelationshipAll" instead'
+      \| call s:bf.show('all')
+command! -nargs=0 Relationship call s:bf.show()
+command! -nargs=0 RelationshipAll call s:bf.show('all')
 
 
 augroup BestFriend
