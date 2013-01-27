@@ -345,7 +345,7 @@ function! s:BestFriend.is_ignored(f) dict
     return 1
   endif
 
-  if isdirectory(a:f)
+  if !getftype(a:f) == 'file'
     return 1
   endif
 
