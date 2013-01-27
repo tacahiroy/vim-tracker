@@ -32,10 +32,9 @@ command! -nargs=0 BestFriends call s:bf.show('all')
 
 augroup BestFriend
   autocmd!
-
-  autocmd BufEnter,FocusGained * call s:bf.start(expand('%:p'))
-  autocmd BufLeave,FocusLost,VimLeave * call s:bf.stop(expand('%:p'))
-  autocmd CursorHold,CursorHoldI * call s:bf.detect_cursor_move(expand('%:p'))
+  autocmd BufEnter,FocusGained * call s:bf.start(resolve(expand('%:p')))
+  autocmd BufLeave,FocusLost,VimLeave * call s:bf.stop(resolve(expand('%:p')))
+  autocmd CursorHold,CursorHoldI * call s:bf.detect_cursor_move(resolve(expand('%:p')))
 augroup END
 
 
