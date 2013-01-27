@@ -1,5 +1,5 @@
 " autoload/bestfriend.vim
-" Author: Takahiro YOSHIHARA <tacahiroy\AT/gmail.com>
+" Author: Takahiro Yoshihara <tacahiroy\AT/gmail.com>
 " License: MIT License
 
 let s:saved_cpo = &cpo
@@ -417,7 +417,7 @@ function! s:BestFriend.Buffer.write(data) dict
   redraw!
 endfunction
 
-function! s:BestFriend.Buffer.exists() dict
+function! s:BestFriend.Buffer.exist() dict
   return bufexists(self.number)
 endfunction
 
@@ -426,8 +426,6 @@ function! s:BestFriend.Buffer.is_open() dict
 endfunction
 
 function! s:BestFriend.Buffer.open(clear) dict
-  let cur_bufwinnr = bufwinnr('%')
-
   if !self.is_open()
     silent execute self.sp
     silent edit `=self.NAME`
@@ -440,14 +438,16 @@ function! s:BestFriend.Buffer.open(clear) dict
   endif
 
   if a:clear
-    call self.clear(cur_bufwinnr)
+    call self.clear()
   endif
 endfunction
 
-function! s:BestFriend.Buffer.clear(bufwinnr) dict
+function! s:BestFriend.Buffer.clear() dict
+  let cur_bufwinnr = bufwinnr('%')
+
   call self.focus()
   execute '%delete _'
-  execute a:bufwinnr . 'wincmd w'
+  execute cur_bufwinnr . 'wincmd w'
 endfunction
 
 function! s:BestFriend.Buffer.focus() dict
@@ -513,6 +513,6 @@ let s:BestFriend.Buffer.colours = get(g:, 'bestfriend_highlight_colours',
 let &cpo = s:saved_cpo
 unlet s:saved_cpo
 
-"__END__
-" vim: fen fdm=marker ft=vim ts=2 sw=2 sts=2:
+"__END__ " {{{
+" vim: fen fdm=marker ts=2 sw=2 sts=2
 
