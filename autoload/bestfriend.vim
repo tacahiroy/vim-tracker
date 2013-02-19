@@ -1,6 +1,6 @@
 " autoload/bestfriend.vim
 " Author: Takahiro Yoshihara <tacahiroy\AT/gmail.com>
-" License: MIT License
+" License: The MIT License
 
 let s:saved_cpo = &cpo
 set cpo&vim
@@ -18,7 +18,7 @@ function! s:debug(msg)
 endfunction
 
 function! s:curfile()
-  return expand('%:p')
+  return resolve(expand('%:p'))
 endfunction
 
 function! s:shorten_path(s)
@@ -53,8 +53,7 @@ function! s:format_time(t)
   endif
 
   if 0 < ans.day
-    let tpl = '%d '
-    let tpl .= (1 < ans.day ? 'days' : 'day') . ', '
+    let tpl = '%dd '
     let time = printf(tpl , ans.day)
   endif
 
@@ -273,13 +272,9 @@ function! s:BestFriend.show(...) dict
     let fmt .= printf('%%-%ds ', s:longest_path_length(sortedlist))
     let fmt .= '%s (%s)'
 
-    let i = 1
     for [k, v] in sortedlist
       let sum = s:format_time(self.summary.files[k].total)
       let today = s:format_time(self.get_total(k))
-      " echo printf(fmt, i, s:shorten_path(k), today, sum)
-
-      let i += 1
     endfor
     call self.Buffer.write(sortedlist)
   finally
@@ -382,6 +377,7 @@ let s:BestFriend.Buffer = {
 
 function! s:BestFriend.Buffer.write(data) dict
   let cur_bufnr = bufnr('%')
+  let cur_path = s:curfile()
 
   call self.open(1)
   call self.focus()
@@ -393,8 +389,6 @@ function! s:BestFriend.Buffer.write(data) dict
   let fmt = '%-' . width.name . 's%s'
   " '() ' is time's parenthesis and a whitespace
   let extra_space = s:numberwidth() + &foldcolumn + len('() ')
-  let bg = s:BestFriend.Buffer.colours.bar
-  let fg = s:BestFriend.Buffer.colours.path
 
   for [k, v] in a:data
     let min = float2nr(floor(v.total) / 60)
@@ -402,15 +396,37 @@ function! s:BestFriend.Buffer.write(data) dict
     let time = s:format_time(v.total)
     let cnt = float2nr((width.bar - len(time) - extra_space) * rate)
     " For syntax highlight, a variable fmt doesn't include time section '(00:00)'
-    let line = printf(fmt, k, repeat(nr2char(9), cnt - len(k) - extra_space))
+    let path = printf(fmt, k, repeat(nr2char(9), cnt - len(k) - extra_space))
 
-    silent $ put = printf('(%s) ', time) . line
-    execute printf('syntax match BFBar%d "%s\ze%s"', cnt, strpart(line, 0, cnt-1), strpart(line, cnt-1))
-    execute printf('highlight BFBar%d ctermbg=%s ctermfg=%s guibg=%s guifg=%s', cnt, bg, fg, bg, fg)
+    let time_l = printf('(%s) ', time)
+    let line = time_l . path
+
+    silent $ put = line
+
+    if cur_path ==# k
+      " current file
+      let group = 'BFBarMyself'
+      let gbg = s:BestFriend.Buffer.colours.gui.my.bar
+      let gfg = s:BestFriend.Buffer.colours.gui.my.path
+      let cbg = s:BestFriend.Buffer.colours.term.my.bar
+      let cfg = s:BestFriend.Buffer.colours.term.my.path
+    else
+      let group = 'BFBar'
+      let gbg = s:BestFriend.Buffer.colours.gui.normal.bar
+      let gfg = s:BestFriend.Buffer.colours.gui.normal.path
+      let cbg = s:BestFriend.Buffer.colours.term.normal.bar
+      let cfg = s:BestFriend.Buffer.colours.term.normal.path
+    endif
+
+    execute printf('syntax match %s%d "%s\ze%s" contains=BFTime', group, cnt, strpart(line, 0, cnt-1), strpart(line, cnt-1))
+    " like this syntax definition is too heavy :(
+    " execute printf('syntax match %s%d /\%%%dl\%%>0v.*\%%<%dv/', group, cnt, i, cnt)
+    execute printf('highlight %s%d ctermbg=%s ctermfg=%s guibg=%s guifg=%s', group, cnt, cbg, cfg, gbg, gfg)
   endfor
-  execute '0delete'
 
-  call self.syntax()
+  execute '0delete'
+  let &l:number = 1
+
   call cursor(1, 1)
   execute bufwinnr(cur_bufnr) . 'wincmd w'
 
@@ -460,9 +476,10 @@ function! s:BestFriend.Buffer.focus() dict
 endfunction
 
 function! s:BestFriend.Buffer.syntax()
-  let fg = s:BestFriend.Buffer.colours.time
+  let gfg = s:BestFriend.Buffer.colours.gui.time
+  let cfg = s:BestFriend.Buffer.colours.term.time
   syntax match BFTime '^(\(\d days\? \)\?\d\{2}:\d\{2})'
-  execute printf('highlight BFTime ctermfg=%s cterm=Bold guifg=%s gui=Bold', fg, fg)
+  execute printf('highlight BFTime ctermfg=%s cterm=Bold guifg=%s gui=Bold', cfg, gfg)
 endf
 " }}}
 
@@ -507,8 +524,17 @@ let s:BestFriend.is_sort_order_desc = get(g:, 'bestfriend_is_sort_order_desc', 1
 let s:BestFriend.observe_cursor_position = get(g:, 'bestfriend_observe_cursor_position',
                                                    \ has('gui_running') ? 0 : 1)
 
-let s:BestFriend.Buffer.colours = get(g:, 'bestfriend_highlight_colours',
-      \ { 'bar': 'Green', 'path': 'Black', 'time': 'DarkRed' })
+" Highlight colour definitions
+if get(g:, 'bestfriend_highlight_colours', 0)
+  let s:BestFriend.Buffer.colours = g:bestfriend_highlight_colours
+else
+  let s:BestFriend.Buffer.colours = {
+        \ 'gui':  { 'normal': { 'bar': 'Green',   'path': 'Black' },
+        \           'my':     { 'bar': 'Orange',  'path': 'Black' }},
+        \ 'term': { 'normal': { 'bar': 'Green',   'path': 'Black' },
+        \           'my':     { 'bar': 'Magenta', 'path': 'Black' }}
+  \ }
+endif
 
 let &cpo = s:saved_cpo
 unlet s:saved_cpo
