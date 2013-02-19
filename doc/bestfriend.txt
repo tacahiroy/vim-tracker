@@ -1,6 +1,6 @@
 *bestfriend.txt*  Know your best friend.
 Version: 0.1.0
-Author:  tacahiroy <https://github.com/tacahiroy>
+Author:  Takahiro Yoshihara <https://github.com/tacahiroy>
 
 
 ==============================================================================
@@ -25,12 +25,8 @@ Maybe, this plugin only works if 'compatible' is not set.
 ==============================================================================
 COMMANDS					*bestfriend-commands*
 
-						*bestfriend-:BestFriend*
-:BestFriend
-	Show only edit time of the current file.
-
-						*bestfriend-:BestFriends*
-:BestFriends
+						*bestfriend-:Relationship*
+:Relationship
 	Show ranking (default: up to 10) of edit time.
 	Display limit is controlled by |g:bestfriend_max_rank|.
 
