@@ -1,6 +1,6 @@
 " plugin/bestfriend.vim
-" Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
-" License: MIT License
+" Author: Takahiro Yoshihara <tacahiroy```AT```gmail.com>
+" License: The MIT License
 
 if exists('g:loaded_bestfriend') || &cp
   finish
@@ -18,7 +18,6 @@ endif
 let s:saved_cpo = &cpo
 set cpo&vim
 
-
 " data-file is managed each day
 " today
 let s:bf = bestfriend#new(bestfriend#dbname(0))
@@ -26,8 +25,11 @@ let s:bf = bestfriend#new(bestfriend#dbname(0))
 let s:bf.summary = bestfriend#new(bestfriend#dbname(1))
 
 " Command
-command! -nargs=0 BestFriend call s:bf.show()
-command! -nargs=0 BestFriends call s:bf.show('all')
+command! -nargs=0 BestFriend
+      \  echoerr 'This command is obsoleted. Please use ":Relationship" instead'
+command! -nargs=0 BestFriends
+      \  echoerr 'This command is obsoleted. Please use ":RelationshipAll" instead'
+command! -nargs=0 Relationship call s:bf.show('all')
 
 
 augroup BestFriend

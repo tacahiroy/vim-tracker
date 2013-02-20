@@ -1,6 +1,6 @@
 " autoload/bestfriend.vim
-" Author: Takahiro YOSHIHARA <tacahiroy```AT```gmail.com>
-" License: MIT License
+" Author: Takahiro Yoshihara <tacahiroy\AT/gmail.com>
+" License: The MIT License
 
 let s:saved_cpo = &cpo
 set cpo&vim
@@ -18,7 +18,7 @@ function! s:debug(msg)
 endfunction
 
 function! s:curfile()
-  return expand('%:p')
+  return resolve(expand('%:p'))
 endfunction
 
 function! s:shorten_path(s)
@@ -53,8 +53,7 @@ function! s:format_time(t)
   endif
 
   if 0 < ans.day
-    let tpl = '%d '
-    let tpl .= (1 < ans.day ? 'days' : 'day') . ', '
+    let tpl = '%dd '
     let time = printf(tpl , ans.day)
   endif
 
@@ -75,6 +74,26 @@ function! s:longest_path_length(ary2)
 
   return mlen
 endfunction
+
+function! s:dirname(path)
+  return fnamemodify(a:path, ':p:h:t')
+endfunction
+
+function! s:basename(path)
+  return fnamemodify(a:path, ':p:t')
+endfunction
+
+function! s:buildpath(...)
+  return join(a:000, '/')
+endfunction
+
+function! s:numberwidth()
+  if &number || (703 <= v:version && &relativenumber)
+    return &numberwidth
+  else
+    return 0
+  endif
+endfunction
 " }}}
 
 " public " {{{
@@ -94,7 +113,7 @@ function! bestfriend#dbname(k)
 endfunction
 " }}}
 
-" Object " {{{
+" Object: BestFriend " {{{
 let s:BestFriend = {}
 
 function! s:BestFriend.set_db(name) dict
@@ -253,14 +272,11 @@ function! s:BestFriend.show(...) dict
     let fmt .= printf('%%-%ds ', s:longest_path_length(sortedlist))
     let fmt .= '%s (%s)'
 
-    let i = 1
     for [k, v] in sortedlist
       let sum = s:format_time(self.summary.files[k].total)
       let today = s:format_time(self.get_total(k))
-      echo printf(fmt, i, s:shorten_path(k), today, sum)
-
-      let i += 1
     endfor
+    call self.Buffer.write(sortedlist)
   finally
     call self.start(s:curfile())
   endtry
@@ -324,7 +340,7 @@ function! s:BestFriend.is_ignored(f) dict
     return 1
   endif
 
-  if isdirectory(a:f)
+  if !getftype(a:f) == 'file'
     return 1
   endif
 
@@ -350,6 +366,123 @@ function! s:BestFriend.is_ignored(f) dict
 
   return 0
 endfunction
+" }}}
+
+" Object BestFriend.Buffer {{{
+let s:BestFriend.Buffer = {
+      \ 'NAME': '[BestFriend]',
+      \ 'sp': 'split',
+      \ 'number': -1
+\ }
+
+function! s:BestFriend.Buffer.write(data) dict
+  let cur_bufnr = bufnr('%')
+  let cur_path = s:curfile()
+
+  call self.open(1)
+  call self.focus()
+
+  let width = {'name': 30, 'bar': winwidth(0) }
+  let longest = { 'path': a:data[0][0],
+                \ 'time': float2nr(floor((a:data[0][1].total / 60)))
+  \ }
+  let fmt = '%-' . width.name . 's%s'
+  " '() ' is time's parenthesis and a whitespace
+  let extra_space = s:numberwidth() + &foldcolumn + len('() ')
+
+  for [k, v] in a:data
+    let min = float2nr(floor(v.total) / 60)
+    let rate = (1.0 * min / longest.time)
+    let time = s:format_time(v.total)
+    let cnt = float2nr((width.bar - len(time) - extra_space) * rate)
+    " For syntax highlight, a variable fmt doesn't include time section '(00:00)'
+    let path = printf(fmt, k, repeat(nr2char(9), cnt - len(k) - extra_space))
+
+    let time_l = printf('(%s) ', time)
+    let line = time_l . path
+
+    silent $ put = line
+
+    if cur_path ==# k
+      " current file
+      let group = 'BFBarMyself'
+      let gbg = s:BestFriend.Buffer.colours.gui.my.bar
+      let gfg = s:BestFriend.Buffer.colours.gui.my.path
+      let cbg = s:BestFriend.Buffer.colours.term.my.bar
+      let cfg = s:BestFriend.Buffer.colours.term.my.path
+    else
+      let group = 'BFBar'
+      let gbg = s:BestFriend.Buffer.colours.gui.normal.bar
+      let gfg = s:BestFriend.Buffer.colours.gui.normal.path
+      let cbg = s:BestFriend.Buffer.colours.term.normal.bar
+      let cfg = s:BestFriend.Buffer.colours.term.normal.path
+    endif
+
+    execute printf('syntax match %s%d "%s\ze%s" contains=BFTime', group, cnt, strpart(line, 0, cnt-1), strpart(line, cnt-1))
+    " like this syntax definition is too heavy :(
+    " execute printf('syntax match %s%d /\%%%dl\%%>0v.*\%%<%dv/', group, cnt, i, cnt)
+    execute printf('highlight %s%d ctermbg=%s ctermfg=%s guibg=%s guifg=%s', group, cnt, cbg, cfg, gbg, gfg)
+  endfor
+
+  execute '0delete'
+  let &l:number = 1
+
+  call cursor(1, 1)
+  execute bufwinnr(cur_bufnr) . 'wincmd w'
+
+  redraw!
+endfunction
+
+function! s:BestFriend.Buffer.exist() dict
+  return bufexists(self.number)
+endfunction
+
+function! s:BestFriend.Buffer.is_open() dict
+  return bufwinnr(self.number) != -1
+endfunction
+
+function! s:BestFriend.Buffer.open(clear) dict
+  if !self.is_open()
+    silent execute self.sp
+    silent edit `=self.NAME`
+
+    let self.number = bufnr('%')
+
+    setlocal buftype=nofile syntax=bestfriend bufhidden=hide
+    setlocal filetype=bestfriend tabstop=1
+    setlocal noswapfile nobuflisted
+  endif
+
+  if a:clear
+    call self.clear()
+  endif
+endfunction
+
+function! s:BestFriend.Buffer.clear() dict
+  let cur_bufwinnr = bufwinnr('%')
+
+  call self.focus()
+  execute '%delete _'
+  execute cur_bufwinnr . 'wincmd w'
+endfunction
+
+function! s:BestFriend.Buffer.focus() dict
+  if self.is_open()
+    let mybufwinnr = bufwinnr(self.number)
+    if mybufwinnr != bufwinnr('%')
+      execute mybufwinnr . 'wincmd w'
+    endif
+  endif
+endfunction
+
+function! s:BestFriend.Buffer.syntax()
+  let gfg = s:BestFriend.Buffer.colours.gui.time
+  let cfg = s:BestFriend.Buffer.colours.term.time
+  syntax match BFTime '^(\(\d days\? \)\?\d\{2}:\d\{2})'
+  execute printf('highlight BFTime ctermfg=%s cterm=Bold guifg=%s gui=Bold', cfg, gfg)
+endf
+" }}}
+
 
 let s:is_debug = get(g:, 'bestfriend_is_debug', 0)
 
@@ -390,12 +523,22 @@ let s:BestFriend.is_sort_order_desc = get(g:, 'bestfriend_is_sort_order_desc', 1
 
 let s:BestFriend.observe_cursor_position = get(g:, 'bestfriend_observe_cursor_position',
                                                    \ has('gui_running') ? 0 : 1)
-" }}}
 
+" Highlight colour definitions
+if get(g:, 'bestfriend_highlight_colours', 0)
+  let s:BestFriend.Buffer.colours = g:bestfriend_highlight_colours
+else
+  let s:BestFriend.Buffer.colours = {
+        \ 'gui':  { 'normal': { 'bar': 'Green',   'path': 'Black' },
+        \           'my':     { 'bar': 'Orange',  'path': 'Black' }},
+        \ 'term': { 'normal': { 'bar': 'Green',   'path': 'Black' },
+        \           'my':     { 'bar': 'Magenta', 'path': 'Black' }}
+  \ }
+endif
 
 let &cpo = s:saved_cpo
 unlet s:saved_cpo
 
-"__END__
-" vim: fen fdm=marker ft=vim ts=2 sw=2 sts=2:
+"__END__ " {{{
+" vim: fen fdm=marker ts=2 sw=2 sts=2
 
