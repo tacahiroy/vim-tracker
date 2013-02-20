@@ -113,7 +113,7 @@ function! bestfriend#dbname(k)
 endfunction
 " }}}
 
-" Object: BestFriend " {{{
+" Class: BestFriend " {{{
 let s:BestFriend = {}
 
 function! s:BestFriend.set_db(name) dict
@@ -237,8 +237,6 @@ function! s:BestFriend.load() dict
   endfor
 endfunction
 
-" TODO: display into a buffer
-" TODO: omit file name if it's better
 function! s:BestFriend.show(...) dict
   try
     call self.stop(s:curfile())
@@ -276,6 +274,7 @@ function! s:BestFriend.show(...) dict
       let sum = s:format_time(self.summary.files[k].total)
       let today = s:format_time(self.get_total(k))
     endfor
+
     call self.Buffer.write(sortedlist)
   finally
     call self.start(s:curfile())
@@ -368,7 +367,7 @@ function! s:BestFriend.is_ignored(f) dict
 endfunction
 " }}}
 
-" Object BestFriend.Buffer {{{
+" Class: BestFriend.Buffer {{{
 let s:BestFriend.Buffer = {
       \ 'NAME': '[BestFriend]',
       \ 'sp': 'split',
@@ -383,8 +382,9 @@ function! s:BestFriend.Buffer.write(data) dict
   call self.focus()
 
   let width = {'name': 30, 'bar': winwidth(0) }
-  let longest = { 'path': a:data[0][0],
-                \ 'time': float2nr(floor((a:data[0][1].total / 60)))
+  let idx = (s:BestFriend.is_sort_order_desc == 1 ? 0 : -1)
+  let longest = { 'path': a:data[idx][0],
+                \ 'time': float2nr(floor(a:data[idx][1].total / 60))
   \ }
   let fmt = '%-' . width.name . 's%s'
   " '() ' is time's parenthesis and a whitespace
@@ -395,9 +395,9 @@ function! s:BestFriend.Buffer.write(data) dict
     let rate = (1.0 * min / longest.time)
     let time = s:format_time(v.total)
     let cnt = float2nr((width.bar - len(time) - extra_space) * rate)
-    " For syntax highlight, a variable fmt doesn't include time section '(00:00)'
-    let path = printf(fmt, k, repeat(nr2char(9), cnt - len(k) - extra_space))
-
+    let path = (string(rate) is# 'nan' || rate < 0)
+          \ ? k
+          \ : printf(fmt, k, repeat(nr2char(9), cnt - len(k) - extra_space))
     let time_l = printf('(%s) ', time)
     let line = time_l . path
 
